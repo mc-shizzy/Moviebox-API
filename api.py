@@ -823,7 +823,7 @@ async def get_ranking_section(name: str):
 @app.get("/api/stream/{subject_id}")
 async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep: int = 0):
     domain = "https://h5-api.aoneroom.com"
-    kenya_ip = "102.68.77.1"
+    region_fallback_ip = "102.68.77.1"
     
     headers = {
         "User-Agent": "Mozilla/5.0",
@@ -845,10 +845,10 @@ async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep:
         }
         kenya_forward_headers = {
             **play_headers,
-            "x-forwarded-for": kenya_ip,
-            "x-real-ip": kenya_ip,
-            "cf-connecting-ip": kenya_ip,
-            "true-client-ip": kenya_ip,
+            "x-forwarded-for": region_fallback_ip,
+            "x-real-ip": region_fallback_ip,
+            "cf-connecting-ip": region_fallback_ip,
+            "true-client-ip": region_fallback_ip,
             "accept-language": "en-KE,en-US;q=0.9,en;q=0.8",
         }
         
@@ -861,7 +861,7 @@ async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep:
             resp = await client.get(play_url, headers=kenya_forward_headers, cookies=cookies, timeout=15)
         
         if resp.status_code != 200:
-            raise HTTPException(status_code=500, detail=f"Player API returned {resp.status_code}")
+            raise HTTPException(status_code=500, detail=f"Player API returned {resp.status_code} (after default and Kenya fallback attempts)")
             
         data = resp.json()
         streams = data.get("data", {}).get("streams", [])
