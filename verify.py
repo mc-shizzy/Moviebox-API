@@ -16,6 +16,58 @@ ENDPOINTS = [
     "/ranking",
 ]
 
+def verify_stream_download():
+    try:
+        q = "oppenheimer"
+        search = httpx.get(BASE + "/search", params={"q": q}, timeout=30)
+        if search.status_code != 200:
+            print(f"\n[FAIL] /search?q={q} => HTTP {search.status_code}")
+            return
+
+        movies = search.json().get("movies", [])
+        if not movies:
+            print(f"\n[FAIL] /search?q={q} => no movies found")
+            return
+
+        first = movies[0]
+        slug = first.get("slug")
+        name = first.get("name")
+        if not slug:
+            print(f"\n[FAIL] /search?q={q} => first movie missing slug")
+            return
+
+        detail = httpx.get(BASE + f"/detail/{slug}", timeout=30)
+        if detail.status_code != 200:
+            print(f"\n[FAIL] /detail/{slug} => HTTP {detail.status_code}")
+            return
+        subject_id = detail.json().get("metadata", {}).get("id")
+        if not subject_id:
+            print(f"\n[FAIL] /detail/{slug} => missing subject id")
+            return
+
+        stream = httpx.get(BASE + f"/api/stream/{subject_id}", params={"detail_path": slug}, timeout=30)
+        if stream.status_code != 200:
+            print(f"\n[FAIL] /api/stream/{subject_id}?detail_path={slug} => HTTP {stream.status_code}")
+            return
+        source_list = stream.json().get("sources", [])
+        if not source_list:
+            print(f"\n[FAIL] /api/stream/{subject_id}?detail_path={slug} => no sources")
+            return
+
+        source_url = source_list[0].get("url")
+        if not source_url:
+            print(f"\n[FAIL] /api/stream/{subject_id}?detail_path={slug} => missing source url")
+            return
+
+        probe = httpx.get(source_url, timeout=30, follow_redirects=True)
+        print(f"\n[STREAM CHECK] title={name!r} slug={slug!r}")
+        print(f"  stream endpoint status: {stream.status_code}")
+        print(f"  direct stream/download status: {probe.status_code}")
+        print(f"  content-type: {probe.headers.get('content-type')}")
+        print(f"  bytes received: {len(probe.content)}")
+    except Exception as e:
+        print(f"\n[FAIL] stream check => {e}")
+
 def check_movies(movies, label):
     total = len(movies)
     with_poster = sum(1 for m in movies if m.get("poster_url"))
@@ -72,3 +124,4 @@ for path in ENDPOINTS:
         print(f"\n[FAIL] {path} => {e}")
 
 print("\n\nDone.")
+verify_stream_download()
