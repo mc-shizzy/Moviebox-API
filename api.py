@@ -823,7 +823,7 @@ async def get_ranking_section(name: str):
 @app.get("/api/stream/{subject_id}")
 async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep: int = 0):
     domain = "https://h5-api.aoneroom.com"
-    region_fallback_ip = "160.119.251.75"
+    south_africa_spoof_ip = "160.119.251.75"
     
     headers = {
         "User-Agent": "Mozilla/5.0",
@@ -845,10 +845,10 @@ async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep:
         }
         spoof_forward_headers = {
             **play_headers,
-            "x-forwarded-for": region_fallback_ip,
-            "x-real-ip": region_fallback_ip,
-            "cf-connecting-ip": region_fallback_ip,
-            "true-client-ip": region_fallback_ip,
+            "x-forwarded-for": south_africa_spoof_ip,
+            "x-real-ip": south_africa_spoof_ip,
+            "cf-connecting-ip": south_africa_spoof_ip,
+            "true-client-ip": south_africa_spoof_ip,
             "accept-language": "en-ZA,en-US;q=0.9,en;q=0.8",
             "origin": "https://123movienow.cc",
             "sec-fetch-dest": "empty",
@@ -865,7 +865,7 @@ async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep:
             resp = await client.get(play_url, headers=spoof_forward_headers, cookies=cookies, timeout=15)
         
         if resp.status_code != 200:
-            raise HTTPException(status_code=500, detail=f"Player API returned {resp.status_code} (after default and spoofed-IP fallback attempts)")
+            raise HTTPException(status_code=500, detail=f"Player API returned {resp.status_code} (after default and spoofed-IP fallback attempt)")
             
         data = resp.json()
         streams = data.get("data", {}).get("streams", [])
