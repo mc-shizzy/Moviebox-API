@@ -822,8 +822,8 @@ async def get_ranking_section(name: str):
 
 @app.get("/api/stream/{subject_id}")
 async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep: int = 0):
-    domain_url = "https://h5-api.aoneroom.com/wefeed-h5api-bff/media-player/get-domain"
-    domain = "https://123movienow.cc" 
+    domain = "https://h5-api.aoneroom.com"
+    kenya_ip = "102.68.77.1"
     
     headers = {
         "User-Agent": "Mozilla/5.0",
@@ -833,17 +833,6 @@ async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep:
     }
 
     async with httpx.AsyncClient() as client:
-        try:
-            r_dom = await client.get(domain_url, headers=headers, timeout=5)
-            if r_dom.status_code == 200:
-                dom_data = r_dom.json()
-                domain = dom_data.get("data", domain)
-                if domain.endswith("/"):
-                    domain = domain[:-1]
-        except Exception as e:
-            print(f"Warning: Failed to fetch player domain, using fallback: {e}")
-            pass
-            
         play_url = f"{domain}/wefeed-h5api-bff/subject/play?subjectId={subject_id}&se={se}&ep={ep}&detailPath={detail_path}"
         
         play_headers = {
@@ -854,12 +843,22 @@ async def get_stream_sources(subject_id: str, detail_path: str, se: int = 0, ep:
             'x-client-info': '{"timezone":"Asia/Dhaka"}',
             'x-source': ''
         }
+        kenya_forward_headers = {
+            **play_headers,
+            "x-forwarded-for": kenya_ip,
+            "x-real-ip": kenya_ip,
+            "cf-connecting-ip": kenya_ip,
+            "true-client-ip": kenya_ip,
+            "accept-language": "en-KE,en-US;q=0.9,en;q=0.8",
+        }
         
         cookies = {
             "uuid": "d8c3539e-2e46-4000-af20-7046a856e30a" 
         }
 
         resp = await client.get(play_url, headers=play_headers, cookies=cookies, timeout=15)
+        if resp.status_code == 403:
+            resp = await client.get(play_url, headers=kenya_forward_headers, cookies=cookies, timeout=15)
         
         if resp.status_code != 200:
             raise HTTPException(status_code=500, detail=f"Player API returned {resp.status_code}")
